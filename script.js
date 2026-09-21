@@ -1,6 +1,6 @@
 ﻿/* =============================================
    BSNU Orientation Day - JavaScript
-   Stars, Particles, Unified Tick, Countdown, Timeline
+   Stars, Particles, Countdown, Timeline
    ============================================= */
 
 // ===== STARS CANVAS =====
@@ -86,48 +86,42 @@
   });
 })();
 
-// ===== UNIFIED TICK: Clock + Countdown + Timeline (all from one setInterval) =====
-(function initTick() {
-  // Event: 22 Sep 2026, 11:00 AM Egypt time (UTC+3)
+// ===== SINGLE COUNTDOWN + TIMELINE HIGHLIGHT =====
+(function initCountdown() {
+  // Event: Tuesday 22 Sep 2026, starts 11:00 AM, Egypt time (UTC+3)
   const EVENT_START_MS = new Date('2026-09-22T11:00:00+03:00').getTime();
   const EVENT_END_MS   = new Date('2026-09-22T22:00:00+03:00').getTime();
 
-  const elClock  = document.getElementById('liveClock');
   const elH      = document.getElementById('cd-hours');
   const elM      = document.getElementById('cd-minutes');
   const elS      = document.getElementById('cd-seconds');
   const elStatus = document.getElementById('event-status');
   const items    = document.querySelectorAll('.timeline-item');
 
-  function pad(n) { return String(Math.max(0, n)).padStart(2, '0'); }
+  function pad(n) { return String(Math.max(0, Math.floor(n))).padStart(2, '0'); }
 
   function tick() {
-    // Single timestamp for this tick — guarantees perfect sync
     const now = Date.now();
-    const d   = new Date(now);
 
-    // --- Live Clock ---
-    if (elClock) {
-      elClock.textContent =
-        pad(d.getHours()) + ':' + pad(d.getMinutes()) + ':' + pad(d.getSeconds());
-    }
+    // ---- Timeline active row highlight ----
+    const d      = new Date(now);
+    const hh     = pad(d.getHours());
+    const mm     = pad(d.getMinutes());
+    const nowStr = hh + ':' + mm;   // "HH:MM"
 
-    // --- Timeline highlight ---
-    // Use HH:MM string for comparison with data-start / data-end
-    const nowHHMM = pad(d.getHours()) + ':' + pad(d.getMinutes());
     items.forEach(item => {
       const s = item.dataset.start;
       const e = item.dataset.end;
       if (s && e) {
-        item.classList.toggle('active', nowHHMM >= s && nowHHMM < e);
+        item.classList.toggle('active', nowStr >= s && nowStr < e);
       }
     });
 
-    // --- Countdown ---
-    let diffMs, label;
+    // ---- Countdown display ----
+    let diffMs;
 
     if (now >= EVENT_END_MS) {
-      // Event finished
+      // Done
       if (elH) elH.textContent = '00';
       if (elM) elM.textContent = '00';
       if (elS) elS.textContent = '00';
@@ -138,13 +132,13 @@
     }
 
     if (now >= EVENT_START_MS) {
-      // Event in progress — count down to end
+      // In progress: count down to END
       diffMs = EVENT_END_MS - now;
-      label  = '🎉 الفعاليات جارية الآن! — حضور وترحيب';
+      if (elStatus) elStatus.textContent = '🎉 الفعاليات جارية الآن! — أهلاً بطلابنا الجدد';
     } else {
-      // Before event — count down to start
+      // Before event: count down to START
       diffMs = EVENT_START_MS - now;
-      label  = '⏳ الفعاليات تبدأ قريباً — نراكم غداً!';
+      if (elStatus) elStatus.textContent = '⏳ الفعاليات تبدأ غداً الساعة 11 صباحاً — نراكم قريباً!';
     }
 
     const totalSec = Math.floor(diffMs / 1000);
@@ -155,10 +149,9 @@
     if (elH) elH.textContent = pad(h);
     if (elM) elM.textContent = pad(mn);
     if (elS) elS.textContent = pad(sc);
-    if (elStatus) elStatus.textContent = label;
   }
 
-  // Fire immediately then every exactly 1 000 ms
+  // Run immediately, then every 1 second exactly
   tick();
   setInterval(tick, 1000);
 })();
