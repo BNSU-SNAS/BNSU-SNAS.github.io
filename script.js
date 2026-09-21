@@ -1,6 +1,6 @@
 ﻿/* =============================================
    BSNU Orientation Day - JavaScript
-   Stars, Particles, Clock, Countdown, Timeline
+   Stars, Particles, Unified Tick, Countdown, Timeline
    ============================================= */
 
 // ===== STARS CANVAS =====
@@ -24,7 +24,6 @@
         x:     Math.random() * canvas.width,
         y:     Math.random() * canvas.height,
         r:     Math.random() * 1.6 + 0.3,
-        a:     Math.random(),
         speed: Math.random() * 0.003 + 0.001,
         phase: Math.random() * Math.PI * 2
       });
@@ -52,8 +51,7 @@
 (function initParticles() {
   const container = document.getElementById('particles');
   if (!container) return;
-  const count = 18;
-  for (let i = 0; i < count; i++) {
+  for (let i = 0; i < 18; i++) {
     const p = document.createElement('div');
     p.className = 'particle';
     const size = Math.random() * 3 + 1;
@@ -67,91 +65,6 @@
     ].join(';');
     container.appendChild(p);
   }
-})();
-
-// ===== LIVE CLOCK =====
-function updateClock() {
-  const el = document.getElementById('liveClock');
-  if (!el) return;
-  const now = new Date();
-  const h = String(now.getHours()).padStart(2, '0');
-  const m = String(now.getMinutes()).padStart(2, '0');
-  const s = String(now.getSeconds()).padStart(2, '0');
-  el.textContent = `${h}:${m}:${s}`;
-}
-setInterval(updateClock, 1000);
-updateClock();
-
-// ===== COUNTDOWN & TIMELINE HIGHLIGHT =====
-(function initCountdown() {
-  // Event date: 22 Sep 2026, starting 11:00 AM (Egypt time = UTC+3)
-  const EVENT_DATE   = '2026-09-22';
-  const EVENT_START  = `${EVENT_DATE}T11:00:00+03:00`;
-  const EVENT_END    = `${EVENT_DATE}T22:00:00+03:00`;
-  const startMs      = new Date(EVENT_START).getTime();
-  const endMs        = new Date(EVENT_END).getTime();
-
-  const cdH  = document.getElementById('cd-hours');
-  const cdM  = document.getElementById('cd-minutes');
-  const cdS  = document.getElementById('cd-seconds');
-  const stat = document.getElementById('event-status');
-
-  function pad(n) { return String(n).padStart(2, '0'); }
-
-  function update() {
-    const now   = Date.now();
-    const items = document.querySelectorAll('.timeline-item');
-
-    if (now >= endMs) {
-      if (cdH) cdH.textContent = '00';
-      if (cdM) cdM.textContent = '00';
-      if (cdS) cdS.textContent = '00';
-      if (stat) stat.textContent = 'انتهت فعاليات اليوم التعريفي - شكراً لكم!';
-      items.forEach(i => i.classList.remove('active'));
-      items[items.length - 1]?.classList.add('active');
-      return;
-    }
-
-    if (now >= startMs && now < endMs) {
-      // Event in progress - highlight current item
-      const todayStr = EVENT_DATE;
-      const nowTime  = new Date().toTimeString().slice(0,5); // HH:MM
-
-      items.forEach(item => {
-        const s = item.dataset.start;
-        const e = item.dataset.end;
-        if (s && e) {
-          const active = nowTime >= s && nowTime < e;
-          item.classList.toggle('active', active);
-        }
-      });
-
-      const diff = endMs - now;
-      const totalSec = Math.floor(diff / 1000);
-      const h = Math.floor(totalSec / 3600);
-      const mn = Math.floor((totalSec % 3600) / 60);
-      const sc = totalSec % 60;
-      if (cdH) cdH.textContent = pad(h);
-      if (cdM) cdM.textContent = pad(mn);
-      if (cdS) cdS.textContent = pad(sc);
-      if (stat) stat.textContent = '🎉 الفعاليات جارية الآن! — حضور وترحيب';
-      return;
-    }
-
-    // Before event
-    const diff = startMs - now;
-    const totalSec = Math.floor(diff / 1000);
-    const h  = Math.floor(totalSec / 3600);
-    const mn = Math.floor((totalSec % 3600) / 60);
-    const sc = totalSec % 60;
-    if (cdH) cdH.textContent = pad(h);
-    if (cdM) cdM.textContent = pad(mn);
-    if (cdS) cdS.textContent = pad(sc);
-    if (stat) stat.textContent = `⏳ الفعاليات تبدأ ${h}:${pad(mn)}:${pad(sc)} — نراكم قريباً!`;
-  }
-
-  setInterval(update, 1000);
-  update();
 })();
 
 // ===== SCROLL REVEAL =====
@@ -171,4 +84,81 @@ updateClock();
     el.style.transition = 'opacity 0.6s ease, transform 0.6s ease';
     observer.observe(el);
   });
+})();
+
+// ===== UNIFIED TICK: Clock + Countdown + Timeline (all from one setInterval) =====
+(function initTick() {
+  // Event: 22 Sep 2026, 11:00 AM Egypt time (UTC+3)
+  const EVENT_START_MS = new Date('2026-09-22T11:00:00+03:00').getTime();
+  const EVENT_END_MS   = new Date('2026-09-22T22:00:00+03:00').getTime();
+
+  const elClock  = document.getElementById('liveClock');
+  const elH      = document.getElementById('cd-hours');
+  const elM      = document.getElementById('cd-minutes');
+  const elS      = document.getElementById('cd-seconds');
+  const elStatus = document.getElementById('event-status');
+  const items    = document.querySelectorAll('.timeline-item');
+
+  function pad(n) { return String(Math.max(0, n)).padStart(2, '0'); }
+
+  function tick() {
+    // Single timestamp for this tick — guarantees perfect sync
+    const now = Date.now();
+    const d   = new Date(now);
+
+    // --- Live Clock ---
+    if (elClock) {
+      elClock.textContent =
+        pad(d.getHours()) + ':' + pad(d.getMinutes()) + ':' + pad(d.getSeconds());
+    }
+
+    // --- Timeline highlight ---
+    // Use HH:MM string for comparison with data-start / data-end
+    const nowHHMM = pad(d.getHours()) + ':' + pad(d.getMinutes());
+    items.forEach(item => {
+      const s = item.dataset.start;
+      const e = item.dataset.end;
+      if (s && e) {
+        item.classList.toggle('active', nowHHMM >= s && nowHHMM < e);
+      }
+    });
+
+    // --- Countdown ---
+    let diffMs, label;
+
+    if (now >= EVENT_END_MS) {
+      // Event finished
+      if (elH) elH.textContent = '00';
+      if (elM) elM.textContent = '00';
+      if (elS) elS.textContent = '00';
+      if (elStatus) elStatus.textContent = 'انتهت فعاليات اليوم التعريفي — شكراً لكم! 🎓';
+      items.forEach(i => i.classList.remove('active'));
+      if (items.length) items[items.length - 1].classList.add('active');
+      return;
+    }
+
+    if (now >= EVENT_START_MS) {
+      // Event in progress — count down to end
+      diffMs = EVENT_END_MS - now;
+      label  = '🎉 الفعاليات جارية الآن! — حضور وترحيب';
+    } else {
+      // Before event — count down to start
+      diffMs = EVENT_START_MS - now;
+      label  = '⏳ الفعاليات تبدأ قريباً — نراكم غداً!';
+    }
+
+    const totalSec = Math.floor(diffMs / 1000);
+    const h  = Math.floor(totalSec / 3600);
+    const mn = Math.floor((totalSec % 3600) / 60);
+    const sc = totalSec % 60;
+
+    if (elH) elH.textContent = pad(h);
+    if (elM) elM.textContent = pad(mn);
+    if (elS) elS.textContent = pad(sc);
+    if (elStatus) elStatus.textContent = label;
+  }
+
+  // Fire immediately then every exactly 1 000 ms
+  tick();
+  setInterval(tick, 1000);
 })();
