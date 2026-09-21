@@ -441,19 +441,20 @@ body {
   .site-header { padding: 16px 12px 20px; }
   .header-logos {
     display: grid !important;
-    grid-template-columns: auto auto !important;
-    justify-content: space-between !important;
+    grid-template-columns: 1fr 1fr !important;
     width: 100% !important;
     gap: 0 !important;
   }
   .logo { width: 70px; height: 70px; border-width: 2px; }
   .logo-right { 
     grid-column: 1 !important; 
-    grid-row: 1 !important; 
+    grid-row: 1 !important;
+    justify-self: start !important; /* aligns to the right edge in RTL */
   }
   .logo-left { 
     grid-column: 2 !important; 
     grid-row: 1 !important; 
+    justify-self: end !important; /* aligns to the left edge in RTL */
   }
   
   .header-title {
@@ -541,4 +542,5 @@ body {
   .countdown-num { font-size: 1.6rem; }
   .countdown-sep { font-size: 1.5rem; }
 }
+
 
